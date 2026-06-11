@@ -1,3 +1,4 @@
+#include <hardware/gpio.h>
 #include <pico/time.h>
 #include <stdio.h>
 #include "pico/stdlib.h"
@@ -48,14 +49,16 @@ int main() {
         gpio_pull_up(i);
     }
     gpio_init(18);
+    gpio_init(LED_PIN);
     gpio_set_dir(18, GPIO_IN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_pull_up(18);
     gpio_set_function(16, GPIO_FUNC_I2C);
     gpio_set_function(17, GPIO_FUNC_I2C);
     gpio_pull_up(16);
     gpio_pull_up(17);
 
-
+    gpio_put(LED_PIN, true);
     while (true) {
         uint32_t all_pins = gpio_get_all();
         wii_button_report = (~all_pins) & 0xFFFF;
@@ -81,7 +84,7 @@ int main() {
         printf("\033[2J\033[H");
         printf("\033[0;329m=== PACKET TEST ===\n");
         printf("Packed report: 0x%04X\n\n", wii_button_report);
-        
+
         for (int i = 0; i <= 18; i++) {
             if (BUTTON_NAMES[i][0] == '\0') continue; // skip blank pins
 
