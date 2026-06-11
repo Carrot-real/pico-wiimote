@@ -4,21 +4,29 @@
 
 void init_bluetooth_system();
 void my_wii_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
+volatile uint16_t wii_button_report = 0x0000;
+
 
 const char* BUTTON_NAMES[] = {
-    "", "",       // GPIO 0, 1
-    "DPAD_UP  ",  // GPIO 2
-    "DPAD_DOWN",  // GPIO 3
-    "DPAD_LEFT",  // GPIO 4
-    "DPAD_RIGHT", // GPIO 5
-    "A_BUTTON ",  // GPIO 6
-    "B_TRIGGER",  // GPIO 7
-    "BUTTON_1 ",  // GPIO 8
-    "BUTTON_2 ",  // GPIO 9
-    "MINUS_BTN",  // GPIO 10
-    "PLUS_BTN ",  // GPIO 11
-    "HOME_BTN ",  // GPIO 12
-    "POWER_BTN"   // GPIO 13
+    "DPAD_LEFT",  //GPIO 0
+    "DPAD_RIGHT", //GPIO 1
+    "DPAD_DOWN",  // GPIO 2
+    "DPAD_UP",    // GPIO 3
+    "PLUS_BTN",   // GPIO 4
+    "",           // GPIO 5
+    "",           // GPIO 6
+    "",           // GPIO 7
+    "MINUS_BTN",  // GPIO 8
+    "",           // GPIO 9
+    "",           // GPIO 10
+    "A_BUTTON",   // GPIO 11
+    "B_TRIGGER",  // GPIO 12
+    "BUTTON_1",   // GPIO 13
+    "BUTTON_2",   // GPIO 14
+    "HOME_BTN",   // GPIO 15
+    "",           // GPIO 16
+    "",           // GPIO 17
+    "POWER_BTN",  // GPIO 18
 };
 const uint LED_PIN = 25; 
 bool led_state = true;
@@ -34,11 +42,14 @@ int main() {
     //init_bluetooth_system();
     sleep_ms(2000);
 
-    for (int i = 2; i <= 13; i++) {
+    for (int i = 0; i <= 15; i++) {
         gpio_init(i);
         gpio_set_dir(i, GPIO_IN);
         gpio_pull_up(i);
     }
+    gpio_init(18);
+    gpio_set_dir(18, GPIO_IN);
+    gpio_pull_up(18);
     gpio_set_function(16, GPIO_FUNC_I2C);
     gpio_set_function(17, GPIO_FUNC_I2C);
     gpio_pull_up(16);
@@ -47,7 +58,8 @@ int main() {
 
     while (true) {
         uint32_t all_pins = gpio_get_all();
-        if ((all_pins & (1 << 13)) == 0) {
+        wii_button_report = (~all_pins) & 0xFFFF;
+        if ((all_pins & (1 << 18)) == 0) {
             
             // 1. Create a fake 10-byte HCI Event packet buffer
             // The real BTstack protocol hides the MAC address starting at byte index 2!
@@ -62,11 +74,18 @@ int main() {
             my_wii_packet_handler(0x04, 0, fake_wii_packet, 10);
             
             // Pause for a second so it doesn't flood your screen
-            sleep_ms(1000); 
+            sleep_ms(3000); 
         }
+
+
         printf("\033[2J\033[H");
-        for (int i = 2; i <= 13; i++) {
-            if ((all_pins & (1 << i)) == 0) {
+        printf("\033[0;329m=== PACKET TEST ===\n");
+        printf("Packed report: 0x%04X\n\n", wii_button_report);
+        
+        for (int i = 0; i <= 18; i++) {
+            if (BUTTON_NAMES[i][0] == '\0') continue; // skip blank pins
+
+            if ((wii_button_report & (1 << i)) != 0 || (i == 18 && (all_pins & (1 << 18)) == 0)) {
                 printf("\033[0;32m%s\n", BUTTON_NAMES[i]);
             } else {
                 printf("\033[0;31m%s\n", BUTTON_NAMES[i]);
@@ -78,23 +97,23 @@ int main() {
 }
 
 //Pin-out
-//GP0               VBUS
-//GP1               VSYS        Power in
+//GP0   LEFT        VBUS
+//GP1   RIGHT       VSYS        Power in
 //GND               GND
-//GP2   UP          3V3_EN
-//GP3   DOWN        3V3
-//GP4   LEFT        ADC_VREF
-//GP5   RIGHT       GP28_A2
+//GP2   DOWN        3V3_EN
+//GP3   UP          3V3
+//GP4   PLUS(+)     ADC_VREF
+//GP5               GP28_A2
 //GND               AGND
-//GP6   A           GP27_A1
-//GP7   B           GP26_A0
-//GP8   1           RUN
-//GP9   2           GP22
+//GP6               GP27_A1
+//GP7               GP26_A0
+//GP8   MINUS(-)    RUN
+//GP9               GP22
 //GND               GND
-//GP10  MINUS -     GP21
-//GP11  PLUS  +     GP20
-//GP12  HOME        GP19
-//GP13  POWER       GP18
+//GP10              GP21
+//GP11  A BUTTON    GP20
+//GP12  B TRIGGER   GP19
+//GP13  1 BUTTON    GP18        POWER BUTTON
 //GND               GND
-//GP14              GP17        i2c0 SCL
-//GP15              GP16        i2c0 SDA
+//GP14  2 BUTTON    GP17        i2c0 SCL
+//GP15  HOME BUTTON GP16        i2c0 SDA
