@@ -34,7 +34,7 @@ int main() {
         if (!button_was_pressed && (all_pins & (1 << 15)) == 0) {
             // \r = start of line | \033[0;32m = green | \033[0m = reset back to white
             printf("\r\033[0;32mButton pressed, light blink fast\033[0m          ");
-            fflush(stdout);            // Forces the terminal to refresh instantly
+            fflush(stdout);
             blink_delay = 50000;       
             button_was_pressed = true; 
         }  
@@ -42,7 +42,7 @@ int main() {
         else if (button_was_pressed && (all_pins & (1 << 15)) != 0) { 
             // \r = start of line | \033[0;31m = red | \033[0m = reset back to white
             printf("\r\033[0;31mButton Released, light blink slow\033[0m         ");
-            fflush(stdout);            // Forces the terminal to refresh instantly
+            fflush(stdout);
             blink_delay = 500000;       
             button_was_pressed = false; 
         }
