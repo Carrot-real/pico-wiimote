@@ -8,11 +8,19 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_executable(pico_wiimote main.c)
+add_executable(pico_wiimote main.c bluetooth.cpp)
 
-target_link_libraries(pico_wiimote pico_stdlib)
+target_compile_definitions(pico_wiimote PRIVATE
+    PICO_BTSTACK_CONFIG_FILE=\"${CMAKE_CURRENT_LIST_DIR}/btstack_config.h\"
+)
+target_include_directories(pico_wiimote PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+
+target_link_libraries(pico_wiimote pico_stdlib pico_btstack_classic)
 
 pico_enable_stdio_usb(pico_wiimote 1)
 pico_enable_stdio_uart(pico_wiimote 0)
 
 pico_add_extra_outputs(pico_wiimote)
+
+

@@ -1,8 +1,12 @@
+#include <pico/time.h>
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+void init_bluetooth_system();
+void my_wii_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
+
 const char* BUTTON_NAMES[] = {
-    "", "",       // GPIO 0, 1 (Not used for buttons)
+    "", "",       // GPIO 0, 1
     "DPAD_UP  ",  // GPIO 2
     "DPAD_DOWN",  // GPIO 3
     "DPAD_LEFT",  // GPIO 4
@@ -24,8 +28,12 @@ volatile int64_t blink_delay = 500000;
 int main() {
     stdio_init_all(); // serial
 
+    while (!stdio_usb_connected()) {
+        sleep_ms(10); // Sit here doing nothing until Mac connects
+    }
+    //init_bluetooth_system();
+    sleep_ms(2000);
 
-    //buttons
     for (int i = 2; i <= 13; i++) {
         gpio_init(i);
         gpio_set_dir(i, GPIO_IN);
@@ -39,6 +47,23 @@ int main() {
 
     while (true) {
         uint32_t all_pins = gpio_get_all();
+        if ((all_pins & (1 << 13)) == 0) {
+            
+            // 1. Create a fake 10-byte HCI Event packet buffer
+            // The real BTstack protocol hides the MAC address starting at byte index 2!
+            uint8_t fake_wii_packet[8] = {
+                0x16, 0x06, 
+                0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, // Fake Wii MAC Address (AA:BB:CC:DD:EE:FF)
+            };
+
+            // 2. Directly force-call your C++ packet handler manually!
+            // Argument 1: HCI_EVENT_PACKET (which is 0x04)
+            // Argument 3: Our fake byte array
+            my_wii_packet_handler(0x04, 0, fake_wii_packet, 10);
+            
+            // Pause for a second so it doesn't flood your screen
+            sleep_ms(1000); 
+        }
         printf("\033[2J\033[H");
         for (int i = 2; i <= 13; i++) {
             if ((all_pins & (1 << i)) == 0) {
