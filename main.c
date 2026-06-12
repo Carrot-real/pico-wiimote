@@ -17,13 +17,13 @@ const char* BUTTON_NAMES[] = {
     "",           // GPIO 5
     "",           // GPIO 6
     "",           // GPIO 7
-    "MINUS_BTN",  // GPIO 8
-    "",           // GPIO 9
-    "",           // GPIO 10
+    "BUTTON_2",   // GPIO 8
+    "BUTTON_1",   // GPIO 9
+    "B_TRIGGER",  // GPIO 10
     "A_BUTTON",   // GPIO 11
-    "B_TRIGGER",  // GPIO 12
-    "BUTTON_1",   // GPIO 13
-    "BUTTON_2",   // GPIO 14
+    "MINUS_BTN",  // GPIO 12
+    "",           // GPIO 13
+    "",           // GPIO 14
     "HOME_BTN",   // GPIO 15
     "",           // GPIO 16
     "",           // GPIO 17
