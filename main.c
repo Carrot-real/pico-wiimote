@@ -51,6 +51,12 @@ void scan_i2c_bus() {
 
 const uint LED_PIN = 25; 
 const uint32_t ACTIVE_LOW_MASK = 0x0000DFFC; // flips the buttons pins which are pulled high to still say off when high
+volatile uint32_t all_pins = 0;
+void button_edge_callback(uint gpio, uint32_t events) {
+    uint32_t raw_pins = gpio_get_all();
+    all_pins = raw_pins ^ ACTIVE_LOW_MASK;
+}
+
 int main() {
     stdio_init_all(); // serial
 
@@ -100,10 +106,15 @@ int main() {
     sleep_ms(2000); 
 
     gpio_put(LED_PIN, true);
-    while (true) {
-        uint32_t raw_pins = gpio_get_all();
-        uint32_t all_pins = raw_pins ^ ACTIVE_LOW_MASK;
 
+    uint32_t interrupt_events = GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE;
+    for (int i = 2; i <= 12; i++) {
+        gpio_set_irq_enabled_with_callback(i, interrupt_events, true, &button_edge_callback);
+    }
+    gpio_set_irq_enabled(14, interrupt_events, true);
+    gpio_set_irq_enabled(15, interrupt_events, true);
+
+    while (true) 
         uint16_t accel_axes[3] = {0, 0, 0};
         adc_select_input(0); 
         for (int axis = 0; axis < 3; axis++) {
