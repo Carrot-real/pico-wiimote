@@ -16,7 +16,7 @@ target_compile_definitions(pico_wiimote PRIVATE
 target_include_directories(pico_wiimote PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 
-target_link_libraries(pico_wiimote pico_stdlib pico_btstack_classic)
+target_link_libraries(pico_wiimote pico_stdlib pico_btstack_classic hardware_adc hardware_i2c hardware_pwm)
 
 pico_enable_stdio_usb(pico_wiimote 1)
 pico_enable_stdio_uart(pico_wiimote 0)
