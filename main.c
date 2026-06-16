@@ -52,16 +52,24 @@ void scan_i2c_bus() {
 const uint LED_PIN = 25; 
 const uint32_t ACTIVE_LOW_MASK = 0x0000DFFC; // flips the buttons pins which are pulled high to still say off when high
 volatile uint32_t all_pins = 0;
+volatile uint16_t global_accel_axes[3] = {0, 0, 0};
 void button_edge_callback(uint gpio, uint32_t events) {
     uint32_t raw_pins = gpio_get_all();
     all_pins = raw_pins ^ ACTIVE_LOW_MASK;
 }
 
+void analog_fifo_callback(){
+    global_accel_axes[0] = adc_fifo_get();
+    global_accel_axes[1] = adc_fifo_get();
+    global_accel_axes[2] = adc_fifo_get();
+    irq_clear(ADC_IRQ_FIFO);
+}
+
+
 int main() {
     stdio_init_all(); // serial
 
-    for (int i = 2; i <= 15; i++) {
-        if (i == 13) continue;
+    for (int i = 0; i <= 12; i++) {
         gpio_init(i);
         gpio_set_dir(i, GPIO_IN);
         gpio_pull_up(i);
@@ -91,13 +99,20 @@ int main() {
     adc_gpio_init(27); //Y 1
     adc_gpio_init(28); //Z 2
 
-    adc_select_input(0);
-    uint16_t x_val = adc_read();
-    adc_select_input(1);
-    uint16_t y_val = adc_read();
-    adc_select_input(2);
-    uint16_t z_val = adc_read();
+//    adc_select_input(0);
+//    uint16_t x_val = adc_read();
+//    adc_select_input(1);
+//    uint16_t y_val = adc_read();
+//    adc_select_input(2);
+//    uint16_t z_val = adc_read();
     adc_set_round_robin(0x07);
+
+    adc_fifo_setup(true, false, 3, false, false);
+    adc_set_clkdiv(240000); //set speed 200hz
+    adc_irq_set_enabled(true);
+    irq_set_exclusive_handler(ADC_IRQ_FIFO, analog_fifo_callback);
+    irq_set_enabled(ADC_IRQ_FIFO, true);
+
 
     while (!stdio_usb_connected()) sleep_ms(10);
         //init_bluetooth_system();
@@ -113,13 +128,8 @@ int main() {
     }
     gpio_set_irq_enabled(14, interrupt_events, true);
     gpio_set_irq_enabled(15, interrupt_events, true);
-
-    while (true) 
-        uint16_t accel_axes[3] = {0, 0, 0};
-        adc_select_input(0); 
-        for (int axis = 0; axis < 3; axis++) {
-            accel_axes[axis] = adc_read();
-        }
+    adc_run(true);
+    while (true) {
         static uint8_t audio_wave = 0;
         audio_wave++;
         pwm_set_gpio_level(13, audio_wave);
@@ -134,10 +144,9 @@ int main() {
             sleep_ms(3000); 
         }
 
-
         printf("\033[2J\033[H");
         printf("\033[0;329m=== PACKET TEST ===\n");
-        printf("Packed report: 0x%04X\n", all_pins);
+        printf("Packed report: 0x%04X\n\n", all_pins & ACTIVE_LOW_MASK);
 
         for (int i = 2; i <= 22; i++) {
             if (BUTTON_NAMES[i][0] == '\0' || i == 16 || i == 17) continue; // skip blank pins
@@ -148,32 +157,33 @@ int main() {
                 printf("\033[0;31m%s\n", BUTTON_NAMES[i]);
             }
         }
-        printf("\033[0;329mX Val: %u\n",accel_axes[0]);
-        printf("Y Val: %u\n",accel_axes[0]);
-        printf("Z Val: %u\n",accel_axes[0]);
+        printf("\033[0;329m");
+        printf("X Val: %u\n",global_accel_axes[0]);
+        printf("Y Val: %u\n",global_accel_axes[0]);
+        printf("Z Val: %u\n",global_accel_axes[0]);
         fflush(stdout);
         sleep_ms(50);
     }
 }
 
 //Pin-out
-//GP0               VBUS
-//GP1               VSYS     Power in
+//GP0  POWER BUTTON VBUS
+//GP1  SYNC BUTTON  VSYS     Power in
 //GND               GND
-//GP2   LEFT        3V3_EN
-//GP3   RIGHT       3V3
-//GP4   UP          ADC_VREF
-//GP5   DOWN        GP28_A2  ACCELEROMETER Z
+//GP2  LEFT         3V3_EN
+//GP3  RIGHT        3V3
+//GP4  UP           ADC_VREF
+//GP5  DOWN         GP28_A2  ACCELEROMETER Z
 //GND               AGND
-//GP6   A BUTTON    GP27_A1  ACCELEROMETER Y
-//GP7   B TRIGGER   GP26_A0  ACCELEROMETER X
-//GP8   BUTTON 1    RUN
-//GP9   BUTTON 2    GP22     RUMBLE MOTOR
+//GP6  A BUTTON     GP27_A1  ACCELEROMETER Y
+//GP7  B TRIGGER    GP26_A0  ACCELEROMETER X
+//GP8  BUTTON 1     RUN
+//GP9  BUTTON 2     GP22     RUMBLE MOTOR
 //GND               GND
-//GP10  MINUS(-)    GP21     LED 1
-//GP11  PLUS(+)     GP20     LED 2
-//GP12  HOME        GP19     LED 3
-//GP13  SSPEAKER    GP18     LED 4
+//GP10 MINUS(-)     GP21     LED 1
+//GP11 PLUS(+)      GP20     LED 2
+//GP12 HOME         GP19     LED 3
+//GP13 SPEAKER      GP18     LED 4
 //GND               GND
-//GP14 POWER BUTTON GP17     I2C0 SCL
-//GP15 SYNC BUTTON  GP16     I2C0 SDA
+//GP14 I2C1 SDA     GP17     I2C0 SCL
+//GP15 I2C1 SCL     GP16     I2C0 SDA
