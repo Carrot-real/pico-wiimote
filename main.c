@@ -50,7 +50,7 @@ void scan_i2c_bus() {
 }
 
 const uint LED_PIN = 25; 
-const uint32_t ACTIVE_LOW_MASK = 0x0000DFFC; // flips the buttons pins which are pulled high to still say off when high
+const uint32_t ACTIVE_LOW_MASK = 0x00001FFF; // flips the buttons pins which are pulled high to still say off when high
 volatile uint32_t all_pins = 0;
 volatile uint16_t global_accel_axes[3] = {0, 0, 0};
 void button_edge_callback(uint gpio, uint32_t events) {
@@ -98,13 +98,6 @@ int main() {
     adc_gpio_init(26); //X 0
     adc_gpio_init(27); //Y 1
     adc_gpio_init(28); //Z 2
-
-//    adc_select_input(0);
-//    uint16_t x_val = adc_read();
-//    adc_select_input(1);
-//    uint16_t y_val = adc_read();
-//    adc_select_input(2);
-//    uint16_t z_val = adc_read();
     adc_set_round_robin(0x07);
 
     adc_fifo_setup(true, false, 3, false, false);
@@ -134,7 +127,7 @@ int main() {
         pwm_set_gpio_level(13, audio_wave);
 
 
-        if ((all_pins & (1 << 15)) != 0) {
+        if ((all_pins & (1 << 1)) != 0) {
             uint8_t fake_wii_packet[8] = {
                 0x16, 0x06, 
                 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
@@ -147,8 +140,8 @@ int main() {
         printf("\033[0;329m=== PACKET TEST ===\n");
         printf("Packed report: 0x%04X\n\n", all_pins & ACTIVE_LOW_MASK);
 
-        for (int i = 2; i <= 22; i++) {
-            if (BUTTON_NAMES[i][0] == '\0' || i == 16 || i == 17) continue; // skip blank pins
+        for (int i = 0; i <= 22; i++) {
+            if (BUTTON_NAMES[i][0] == '\0' || (14 <= i && i <= 17)) continue;
 
             if ((all_pins & (1 << i)) != 0) {
                 printf("\033[0;32m%s\n", BUTTON_NAMES[i]);
@@ -158,8 +151,8 @@ int main() {
         }
         printf("\033[0;329m");
         printf("X Val: %u\n",global_accel_axes[0]);
-        printf("Y Val: %u\n",global_accel_axes[0]);
-        printf("Z Val: %u\n",global_accel_axes[0]);
+        printf("Y Val: %u\n",global_accel_axes[1]);
+        printf("Z Val: %u\n",global_accel_axes[2]);
         fflush(stdout);
         sleep_ms(50);
     }
