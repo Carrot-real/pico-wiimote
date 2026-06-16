@@ -12,8 +12,8 @@ void my_wii_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
 
 const char* BUTTON_NAMES[] = {
-    "",           // GPIO 0
-    "",           // GPIO 1
+    "POWER_BTN",  // GPIO 0
+    "SYNC_BTN",   // GPIO 1
     "DPAD_LEFT",  // GPIO 2
     "DPAD_RIGHT", // GPIO 3
     "DPAD_UP",    // GPIO 4
@@ -26,10 +26,10 @@ const char* BUTTON_NAMES[] = {
     "PLUS_BTN",   // GPIO 11
     "HOME_BTN",   // GPIO 12
     "SPEAKER",    // GPIO 13
-    "POWER_BTN",  // GPIO 14
-    "SYNC_BTN",   // GPIO 15
-    "I2C_SDA",    // GPIO 16
-    "I2C_SCL",    // GPIO 17
+    "I2C1_SDA",   // GPIO 14
+    "I2C1_SCL",   // GPIO 15
+    "I2C0_SDA",   // GPIO 16
+    "I2C0_SCL",   // GPIO 17
     "LED_4",      // GPIO 18
     "LED_3",      // GPIO 19
     "LED_2",      // GPIO 20
@@ -80,12 +80,12 @@ int main() {
     }
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_init(16);
-    gpio_init(17);
-    gpio_set_function(16, GPIO_FUNC_I2C);
-    gpio_set_function(17, GPIO_FUNC_I2C);
-    gpio_pull_up(16);
-    gpio_pull_up(17);
+    
+    for (int i = 14; i <= 17; i++) {
+    gpio_init(i);
+    gpio_set_function(i, GPIO_FUNC_I2C);
+    gpio_pull_up(i);
+    }
 
     gpio_init(13);
     gpio_set_function(13, GPIO_FUNC_PWM);
@@ -123,11 +123,10 @@ int main() {
     gpio_put(LED_PIN, true);
 
     uint32_t interrupt_events = GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE;
-    for (int i = 2; i <= 12; i++) {
+    for (int i = 0; i <= 12; i++) {
         gpio_set_irq_enabled_with_callback(i, interrupt_events, true, &button_edge_callback);
     }
-    gpio_set_irq_enabled(14, interrupt_events, true);
-    gpio_set_irq_enabled(15, interrupt_events, true);
+    
     adc_run(true);
     while (true) {
         static uint8_t audio_wave = 0;
